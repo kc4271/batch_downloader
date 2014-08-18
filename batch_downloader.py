@@ -24,35 +24,6 @@ def signal_handler(signal, frame):
     global stop
     stop = True
 
-class ThreadPool:
-    def __init__(self, thread_num_):
-        self.thread_num = thread_num
-        self.callable = None
-        self.arg_list = None
-
-    def make_request(self, callable_, arg_queue):
-        self.callable = callable_
-        self.arg_list = arg_queue
-
-    def run(self):
-        threads = [None for e in range(self.thread_num)]
-        task_id = 0
-        live = False
-        for idx in range(self.thread_num):
-            if isinstance(threads[idx], threading.Thread):
-                if threads[idx].isAlive():
-                    live = True
-                else:
-                    if task_id < len(self.arg_list):
-                        task = self.arg_list[task_id]
-                        ##todo
-                        threads[idx] = self.callable(*self.arg_list[task_id])
-            
-            if isinstance(threads[idx], type(None)):
-                pass
-
-            time.sleep(0.2)
-
 def worker(task_list, dirpath, log):
     global stop
     
@@ -70,26 +41,28 @@ def worker(task_list, dirpath, log):
                 continue
 
             start_time = int(time.time())
-            write_file = False
+            
             timeout = eventlet.Timeout(TIMEOUT)
             try:
                 u = requests.get(url)
-                write_file = True
-            except:
-                pass
-            finally:
-                timeout.cancel()
-            end_time = int(time.time())
-            
-            if write_file:
+            except eventlet.Timeout as t:
+                print 'Timeout %d, %s,' % (item_id, url),
+            except Exception, e:
+                print '%s, %d, %s,' % (type(e), item_id, url),
+                msg = '%s\t%s\n' % (type(e), url)
+                log.put(msg)
+            else:
                 with open(fpath, 'wb') as f:
                     f.write(u.content)
-                print 'Finish %d, %s, %ds' % (item_id, url, end_time - start_time)
-            else:
-                print 'Error %d, %s, %ds' % (item_id, url, end_time - start_time)
+                print 'Finish %d, %s' % (item_id, url),
+            finally:
+                timeout.cancel()
+                
+            end_time = int(time.time())
+            print '%ds' % (end_time - start_time)
         except Exception, e:
-            msg = '%s\t%s\n' % (url, type(e))
-            log.put(msg)      
+            msg = '%s\t%s\n' % (type(e), url)
+            print msg     
 
 def get_url_list(poolsize):
     f_lst = open(sys.argv[1])
@@ -133,16 +106,15 @@ class Log_worker(threading.Thread):
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
-    #parameter
-    #socket.setdefaulttimeout(600)
     eventlet.monkey_patch()
+
+    #parameter
     poolsize = 100
 
     #init
     stop = False
     log_queue = Queue.Queue()
-    pool = threadpool.ThreadPool(poolsize)
-    
+    pool = threadpool.ThreadPool(poolsize)    
 
     if len(sys.argv) >= 3:
         urls = get_url_list(poolsize)
@@ -174,6 +146,4 @@ if __name__ == '__main__':
         log.join()
 
     else:
-        print 'Usage: batch_downloader.py XXXX.lst YYYY.log'
-
-
+        print 'Usage: multithread_downloader.py XXXX.lst YYYY.log'
