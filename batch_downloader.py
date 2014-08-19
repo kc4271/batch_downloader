@@ -45,8 +45,10 @@ def worker(task_list, dirpath, log):
             timeout = eventlet.Timeout(TIMEOUT)
             try:
                 u = requests.get(url)
-            except eventlet.Timeout as t:
+            except eventlet.Timeout as e:
                 print 'Timeout %d, %s,' % (item_id, url),
+                msg = '%s\t%s\n' % (type(e), url)
+                log.put(msg)
             except Exception, e:
                 print '%s, %d, %s,' % (type(e), item_id, url),
                 msg = '%s\t%s\n' % (type(e), url)
@@ -146,4 +148,6 @@ if __name__ == '__main__':
         log.join()
 
     else:
-        print 'Usage: multithread_downloader.py XXXX.lst YYYY.log'
+        print 'Usage: batch_downloader.py XXXX.lst YYYY.log'
+
+
