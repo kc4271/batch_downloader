@@ -1,4 +1,4 @@
 batch_downloader
 ================
 
-Download lots of small files
+Download huge number of small files
