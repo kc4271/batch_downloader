@@ -148,6 +148,6 @@ if __name__ == '__main__':
         log.join()
 
     else:
-        print 'Usage: batch_downloader.py XXXX.lst YYYY.log'
+        print 'Usage: batch_downloader.py urllist.lst urllist.log'
 
 
